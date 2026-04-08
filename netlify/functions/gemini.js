@@ -7,7 +7,7 @@ exports.handler = async function (event) {
   if (!apiKey) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "未配置 API Key" }),
+      body: JSON.stringify({ error: "服务器未配置 API Key，请在 Netlify 环境变量中设置 GEMINI_API_KEY" }),
     };
   }
 
@@ -18,12 +18,11 @@ exports.handler = async function (event) {
     return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON" }) };
   }
 
-  // 关键：这里必须包含你测试通过的 2.5 系列模型
+  // Model fallback chain: try each in order until one succeeds
   const models = [
-    "gemini-2.5-flash", 
-    "gemini-flash-latest",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash-lite",
     "gemini-2.0-flash",
-    "gemini-1.5-flash"
   ];
 
   let lastError = null;
@@ -40,6 +39,7 @@ exports.handler = async function (event) {
 
       const data = await response.json();
 
+      // Quota exhausted → try next model
       if (response.status === 429 || data?.error?.code === 429) {
         lastError = `${model} 额度已用完`;
         continue;
@@ -50,9 +50,13 @@ exports.handler = async function (event) {
         continue;
       }
 
+      // Success
       return {
         statusCode: 200,
-        headers: { "Content-Type": "application/json", "X-Model-Used": model },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Model-Used": model,
+        },
         body: JSON.stringify(data),
       };
     } catch (err) {
@@ -61,8 +65,13 @@ exports.handler = async function (event) {
     }
   }
 
+  // All models exhausted
   return {
-    statusCode: 500,
-    body: JSON.stringify({ error: "所有模型均失败", detail: lastError }),
+    statusCode: 429,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      error: `所有模型额度均已用完（${lastError}）。请检查你的 Gemini API Key 是否已启用，或稍后重试。`,
+      hint: "前往 https://aistudio.google.com/apikey 确认 Key 状态",
+    }),
   };
 };
