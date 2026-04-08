@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="说话力">
+<meta name="theme-color" content="#f5f0e8">
+<link rel="manifest" href="manifest.json">
+<title>说话力</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f0e8;--bg2:#ede6d6;--card:#faf7f2;--card2:#efe9db;--border:#d6ccba;--border2:#c4b8a4;--ink:#1e1a14;--ink2:#3d3629;--muted:#7a6f5e;--faint:#b0a693;--coral:#c4684a;--coral-bg:rgba(196,104,74,0.10);--teal:#3a7f7f;--teal-bg:rgba(58,127,127,0.10);--lav:#7060a0;--lav-bg:rgba(112,96,160,0.10);--sand:#c49a50;--green:#4a8c5c;--green-bg:rgba(74,140,92,0.10);--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'Noto Sans SC',sans-serif;font-weight:400;-webkit-font-smoothing:antialiased}
+.app{display:flex;flex-direction:column;height:100dvh;height:100vh}
+.status-bar{height:var(--safe-top);background:var(--bg);flex-shrink:0}
+.header{flex-shrink:0;padding:14px 22px 12px;display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-bottom:1.5px solid var(--border)}
+.header-title{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:700;color:var(--ink)}
+.header-title span{color:var(--coral)}
+.header-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.12em}
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none}
+.scroll-area::-webkit-scrollbar{display:none}
+/* BOTTOM NAV — 2.5x taller */
+.bottom-nav{flex-shrink:0;display:flex;border-top:1.5px solid var(--border);background:var(--bg);padding-bottom:var(--safe-bot);height:calc(72px + var(--safe-bot))}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;cursor:pointer;gap:5px;position:relative;user-select:none;transition:opacity .12s;min-width:0}
+.nav-item:active{opacity:.5}
+.nav-svg{width:26px;height:26px;stroke:var(--faint);stroke-width:1.75;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s;flex-shrink:0}
+.nav-label{font-size:11px;color:var(--faint);letter-spacing:.04em;font-family:'DM Mono',monospace;white-space:nowrap;transition:color .15s}
+.nav-item.active .nav-svg{stroke:var(--coral)}
+.nav-item.active .nav-label{color:var(--coral);font-weight:500}
+.nav-item.active::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:2.5px;background:var(--coral);border-radius:0 0 3px 3px}
+.page{display:none}
+.page.active{display:block;animation:fadeUp .22s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.page-header{padding:26px 22px 4px}
+.ph-eyebrow{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.2em;text-transform:uppercase;margin-bottom:6px}
+.ph-title{font-family:'Noto Serif SC',serif;font-size:26px;font-weight:700;color:var(--ink);margin-bottom:6px;line-height:1.2}
+.ph-desc{font-size:14px;color:var(--muted);line-height:1.7}
+/* HOME */
+.home-hero{padding:26px 22px 16px;border-bottom:1.5px solid var(--border)}
+.home-eyebrow{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.2em;margin-bottom:10px}
+.home-title{font-family:'Noto Serif SC',serif;font-size:30px;font-weight:700;line-height:1.2;color:var(--ink);margin-bottom:8px}
+.home-title em{color:var(--coral);font-style:normal}
+.home-desc{font-size:15px;color:var(--muted);line-height:1.7}
+.streak-row{display:flex;gap:12px;padding:16px 22px;border-bottom:1.5px solid var(--border)}
+.streak-card{flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:15px 14px;display:flex;flex-direction:column;gap:4px}
+.streak-card.hi{background:var(--coral-bg);border-color:rgba(196,104,74,.3)}
+.streak-val{font-family:'DM Mono',monospace;font-size:30px;color:var(--ink);line-height:1;font-weight:500}
+.streak-card.hi .streak-val{color:var(--coral)}
+.streak-lbl{font-size:13px;color:var(--ink2);font-weight:500}
+.streak-sub{font-size:11px;color:var(--muted);line-height:1.5}
+.sec-ey{padding:18px 22px 10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.2em;text-transform:uppercase}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 22px 18px}
+.quick-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:18px 14px 16px;cursor:pointer;transition:transform .12s;user-select:none}
+.quick-card:active{transform:scale(.96)}
+.qi svg{width:28px;height:28px;stroke:var(--coral);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;margin-bottom:12px;display:block}
+.quick-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.quick-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.today-block{margin:0 22px 28px;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;background:var(--card)}
+.today-head{padding:12px 18px;background:var(--card2);border-bottom:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.today-head-lbl{font-family:'DM Mono',monospace;font-size:11px;color:var(--coral);letter-spacing:.1em;font-weight:500}
+.today-head-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--faint)}
+.today-task{padding:15px 18px;border-bottom:1.5px solid var(--border);cursor:pointer;transition:background .12s}
+.today-task:last-child{border-bottom:none}
+.today-task:active{background:var(--card2)}
+.tt-day{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.1em;margin-bottom:5px}
+.tt-name{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px}
+.tt-desc{font-size:13px;color:var(--muted);line-height:1.65}
+.tt-time{display:inline-block;margin-top:8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--coral);background:var(--coral-bg);padding:3px 8px;border-radius:4px}
+/* AI COACH */
+.coach-wrap{padding:16px 22px 32px;display:flex;flex-direction:column;gap:16px}
+.coach-tip{background:var(--teal-bg);border:1.5px solid rgba(58,127,127,.25);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--ink2);line-height:1.75}
+.coach-tip strong{color:var(--teal);font-weight:700}
+/* Topic generator */
+.topic-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden}
+.topic-card-head{padding:12px 16px 10px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;gap:8px}
+.topic-card-head svg{width:15px;height:15px;stroke:var(--coral);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.topic-card-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.15em;text-transform:uppercase}
+.topic-dirs{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px 10px}
+.dir-btn{padding:9px 16px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-family:'Noto Sans SC',sans-serif;font-size:13px;color:var(--ink2);cursor:pointer;transition:all .15s;user-select:none}
+.dir-btn:active{transform:scale(.95)}
+.dir-btn.sel{background:var(--coral);border-color:var(--coral);color:#fff;font-weight:500}
+.topic-gen-row{padding:0 16px 14px;display:flex;gap:10px}
+.btn-gen{flex:1;padding:14px;background:var(--ink);border:none;border-radius:10px;font-family:'Noto Sans SC',sans-serif;font-size:14px;font-weight:700;color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s}
+.btn-gen:active{opacity:.7}
+.btn-gen:disabled{opacity:.4;cursor:not-allowed}
+.btn-gen svg{width:16px;height:16px;stroke:var(--bg);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.topic-result{margin:0 16px 14px;background:var(--coral-bg);border:1.5px solid rgba(196,104,74,.3);border-radius:10px;padding:14px 16px;display:none}
+.topic-result-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--coral);letter-spacing:.12em;margin-bottom:8px}
+.topic-result-text{font-size:15px;font-weight:700;color:var(--ink);line-height:1.6;margin-bottom:8px}
+.topic-result-hint{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:12px}
+.btn-use{width:100%;padding:12px;background:var(--coral);border:none;border-radius:8px;font-family:'Noto Sans SC',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;transition:opacity .15s}
+.btn-use:active{opacity:.7}
+/* Input */
+.input-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden}
+.input-card-head{padding:12px 16px 10px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.input-card-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.15em;text-transform:uppercase}
+.char-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--faint)}
+textarea#speechInput{display:block;width:100%;min-height:180px;padding:16px;background:transparent;border:none;outline:none;resize:none;font-family:'Noto Sans SC',sans-serif;font-size:16px;font-weight:400;color:var(--ink);line-height:1.75;-webkit-appearance:none}
+textarea#speechInput::placeholder{color:var(--faint)}
+.input-actions{display:flex;gap:10px;padding:12px 14px;border-top:1.5px solid var(--border)}
+.btn-clear{flex:0 0 auto;padding:14px 16px;background:none;border:1.5px solid var(--border);border-radius:10px;font-family:'Noto Sans SC',sans-serif;font-size:14px;color:var(--muted);cursor:pointer;transition:all .15s;font-weight:500}
+.btn-clear:active{background:var(--card2);color:var(--ink)}
+.btn-submit{flex:1;padding:14px;background:var(--coral);border:none;border-radius:10px;font-family:'Noto Sans SC',sans-serif;font-size:16px;font-weight:700;color:#fff;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-submit:active{background:#b05a3e}
+.btn-submit:disabled{background:var(--faint);cursor:not-allowed}
+.btn-submit svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.loading-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.loading-dots{display:flex;gap:6px}
+.loading-dots span{width:8px;height:8px;border-radius:50%;background:var(--coral);animation:blink 1.2s infinite}
+.loading-dots span:nth-child(2){animation-delay:.2s}
+.loading-dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.loading-text{font-size:14px;color:var(--muted)}
+.result-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden}
+.result-head{padding:13px 18px;background:var(--card2);border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.result-head-lbl{font-family:'DM Mono',monospace;font-size:11px;color:var(--green);letter-spacing:.1em;font-weight:500}
+.result-score-badge{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--coral);background:var(--coral-bg);padding:4px 10px;border-radius:6px}
+.result-body{padding:18px 18px 6px}
+.res-section{margin-bottom:20px}
+.res-section:last-child{margin-bottom:4px}
+.res-sec-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.res-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-red{background:#c4684a}.dot-orange{background:#c49a50}.dot-green{background:#4a8c5c}.dot-blue{background:#3a7f7f}
+.revised-box{background:var(--green-bg);border:1.5px solid rgba(74,140,92,.25);border-radius:10px;padding:14px 16px;margin-top:8px}
+.revised-box p{font-size:14px;color:var(--ink2);line-height:1.85;white-space:pre-wrap}
+.res-list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.res-list li{display:flex;gap:10px;font-size:14px;color:var(--ink2);line-height:1.75}
+.res-list li::before{content:"›";color:var(--coral);font-weight:700;flex-shrink:0;font-size:16px;line-height:1.5}
+.result-footer{padding:14px 18px;border-top:1.5px solid var(--border);display:flex;gap:10px}
+.btn-copy{flex:1;padding:13px;background:none;border:1.5px solid var(--border);border-radius:10px;font-family:'Noto Sans SC',sans-serif;font-size:14px;color:var(--muted);cursor:pointer;transition:all .15s;font-weight:500}
+.btn-copy:active{background:var(--card2);color:var(--ink)}
+.btn-new{flex:1;padding:13px;background:var(--coral);border:none;border-radius:10px;font-family:'Noto Sans SC',sans-serif;font-size:14px;color:#fff;font-weight:700;cursor:pointer;transition:all .15s}
+.btn-new:active{background:#b05a3e}
+.error-card{background:#fff5f3;border:1.5px solid rgba(196,104,74,.3);border-radius:12px;padding:16px;font-size:14px;color:var(--coral);line-height:1.7}
+/* DIMENSIONS */
+.dim-list{padding:14px 22px 32px;display:flex;flex-direction:column;gap:10px}
+.dim-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer}
+.dim-card.open{border-color:var(--border2)}
+.dim-card-head{display:flex;align-items:center;padding:16px 16px 16px 18px;gap:12px;user-select:none;transition:background .12s}
+.dim-card-head:active{background:var(--card2)}
+.dim-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--faint);min-width:22px}
+.dim-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dim-icon svg{width:22px;height:22px;stroke:var(--muted);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s}
+.dim-card.open .dim-icon svg{stroke:var(--coral)}
+.dim-info{flex:1;min-width:0}
+.dim-name{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:3px}
+.dim-sub{font-size:12px;color:var(--muted);line-height:1.4}
+.dim-badge{font-family:'DM Mono',monospace;font-size:9px;padding:3px 7px;border-radius:5px;letter-spacing:.06em;flex-shrink:0}
+.b-l{background:var(--teal-bg);color:var(--teal)}.b-e{background:var(--coral-bg);color:var(--coral)}.b-s{background:var(--lav-bg);color:var(--lav)}
+.dim-arrow svg{width:16px;height:16px;stroke:var(--faint);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s,stroke .15s;flex-shrink:0;margin-left:4px}
+.dim-card.open .dim-arrow svg{transform:rotate(90deg);stroke:var(--coral)}
+.dim-body{display:none;border-top:1.5px solid var(--border)}
+.dim-card.open .dim-body{display:block}
+.dim-sec{padding:16px 18px;border-bottom:1.5px solid var(--border)}
+.dim-sec:last-child{border-bottom:none}
+.dim-sec-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}
+.sci-box{background:var(--teal-bg);border-left:3px solid var(--teal);border-radius:0 8px 8px 0;padding:13px 15px;font-size:13px;color:var(--ink2);line-height:1.8}
+.meth-row{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.meth-row:last-child{border-bottom:none}
+.meth-dot{width:7px;height:7px;border-radius:50%;background:var(--coral);flex-shrink:0;margin-top:7px}
+.meth-txt{font-size:14px;color:var(--ink2);line-height:1.7}
+.meth-txt strong{color:var(--ink);font-weight:700}
+/* PLAN */
+.plan-list{padding:14px 22px 32px;display:flex;flex-direction:column;gap:12px}
+.week-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden}
+.week-head{padding:13px 18px;background:var(--card2);border-bottom:1.5px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.week-pill{font-family:'DM Mono',monospace;font-size:10px;background:var(--coral);color:#fff;padding:4px 9px;border-radius:5px;font-weight:500;flex-shrink:0}
+.week-title{font-size:14px;font-weight:700;color:var(--ink);flex:1;min-width:0}
+.week-focus{font-family:'DM Mono',monospace;font-size:10px;color:var(--coral);background:var(--coral-bg);padding:3px 8px;border-radius:4px}
+.day-row{display:flex;gap:14px;padding:15px 18px;border-bottom:1.5px solid var(--border);align-items:flex-start}
+.day-row:last-child{border-bottom:none}
+.day-tag{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);min-width:52px;flex-shrink:0;padding-top:3px;line-height:1.4}
+.day-content{flex:1}
+.day-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:5px}
+.day-desc{font-size:13px;color:var(--muted);line-height:1.65}
+.day-time{font-family:'DM Mono',monospace;font-size:11px;color:var(--sand);flex-shrink:0;padding-top:3px}
+/* CHECKLIST */
+.cl-body{padding:14px 22px 32px}
+.prog-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:18px 18px 16px;margin-bottom:20px}
+.prog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.prog-title{font-size:15px;font-weight:700;color:var(--ink)}
+.prog-count{font-family:'DM Mono',monospace;font-size:14px;color:var(--coral);font-weight:500}
+.prog-track{height:5px;background:var(--card2);border-radius:5px;overflow:hidden;border:1px solid var(--border)}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--coral),#d4845e);border-radius:5px;transition:width .4s cubic-bezier(.4,0,.2,1);width:0%}
+.prog-sub{margin-top:10px;font-size:12px;color:var(--muted)}
+.ck-group{margin-bottom:20px}
+.ck-group-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--coral);letter-spacing:.15em;text-transform:uppercase;padding-bottom:10px;border-bottom:1.5px solid var(--border);margin-bottom:2px}
+.ck-item{display:flex;align-items:flex-start;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:opacity .12s}
+.ck-item:last-child{border-bottom:none}
+.ck-item:active{opacity:.6}
+.ck-box{width:24px;height:24px;border:2px solid var(--border2);border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .18s;background:var(--card)}
+.ck-item.done .ck-box{background:var(--coral);border-color:var(--coral)}
+.ck-mark{display:none;font-size:13px;color:#fff;font-weight:700;line-height:1}
+.ck-item.done .ck-mark{display:block}
+.ck-text{font-size:14px;color:var(--ink);line-height:1.65;flex:1;transition:color .18s}
+.ck-item.done .ck-text{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--border2)}
+.reset-btn{display:block;width:100%;padding:15px;background:none;border:1.5px solid var(--border);border-radius:12px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;cursor:pointer;margin-top:10px;transition:all .15s}
+.reset-btn:active{background:var(--card2);color:var(--ink)}
+/* PRINCIPLES */
+.pri-list{padding:14px 22px 32px;display:flex;flex-direction:column;gap:12px}
+.pri-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:20px 18px;display:flex;gap:16px}
+.pri-num{font-family:'DM Mono',monospace;font-size:26px;color:var(--coral);line-height:1;flex-shrink:0;font-weight:500;padding-top:2px}
+.pri-title{font-family:'Noto Serif SC',serif;font-size:16px;font-weight:700;color:var(--ink);margin-bottom:8px;line-height:1.4}
+.pri-body{font-size:13px;color:var(--muted);line-height:1.85}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="status-bar"></div>
+  <div class="header">
+    <div style="display:flex;align-items:baseline;gap:8px">
+      <div class="header-title">说<span>话</span>力</div>
+      <div class="header-sub">SPEAKING OS</div>
+    </div>
+  </div>
+  <div class="scroll-area" id="scrollArea">
+
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="home-hero">
+        <div class="home-eyebrow">DAILY PRACTICE · 每日练习</div>
+        <div class="home-title">开口即是<em>竞争力</em></div>
+        <div class="home-desc">科学方法训练七个核心维度，AI实时点评，每日打卡。</div>
+      </div>
+      <div class="streak-row">
+        <div class="streak-card hi"><div class="streak-val" id="streakNum">0</div><div class="streak-lbl">连续天数</div><div class="streak-sub" id="streakSub">完成清单开始记录</div></div>
+        <div class="streak-card"><div class="streak-val" id="todayDone">0</div><div class="streak-lbl">今日完成</div><div class="streak-sub">共 12 项任务</div></div>
+      </div>
+      <div class="sec-ey">快速入口</div>
+      <div class="quick-grid">
+        <div class="quick-card" onclick="switchPage('coach')">
+          <div class="qi"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1" fill="var(--coral)" stroke="none"/><circle cx="12" cy="10" r="1" fill="var(--coral)" stroke="none"/><circle cx="15" cy="10" r="1" fill="var(--coral)" stroke="none"/></svg></div>
+          <div class="quick-title">AI点评</div><div class="quick-desc">贴入演讲稿，获得严格反馈</div>
+        </div>
+        <div class="quick-card" onclick="switchPage('checklist')">
+          <div class="qi"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+          <div class="quick-title">今日打卡</div><div class="quick-desc">完成每日练习任务</div>
+        </div>
+        <div class="quick-card" onclick="switchPage('dimensions')">
+          <div class="qi"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <div class="quick-title">七大维度</div><div class="quick-desc">方法论与科学依据</div>
+        </div>
+        <div class="quick-card" onclick="switchPage('plan')">
+          <div class="qi"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="quick-title">八周计划</div><div class="quick-desc">今日训练内容</div>
+        </div>
+      </div>
+      <div class="sec-ey">本周重点任务</div>
+      <div class="today-block">
+        <div class="today-head"><span class="today-head-lbl">WEEK 1–2 · 基础建构</span><span class="today-head-date" id="todayDate"></span></div>
+        <div class="today-task" onclick="switchPage('plan')"><div class="tt-day">MON / THU</div><div class="tt-name">PREP结构练习</div><div class="tt-desc">选一个日常话题，按"观点→理由→例子→重申"大声朗读</div><div class="tt-time">20 min</div></div>
+        <div class="today-task" onclick="switchPage('plan')"><div class="tt-day">TUE / FRI</div><div class="tt-name">费曼法则训练</div><div class="tt-desc">用3句话向非专业人士解释一个你熟悉的概念，录音回听</div><div class="tt-time">15 min</div></div>
+        <div class="today-task" onclick="switchPage('coach')"><div class="tt-day">随时可用</div><div class="tt-name">AI演讲点评</div><div class="tt-desc">把任何你说过或写过的话贴进来，获得严格的AI反馈</div><div class="tt-time">即时</div></div>
+      </div>
+    </div>
+
+    <!-- AI COACH -->
+    <div class="page" id="page-coach">
+      <div class="page-header">
+        <div class="ph-eyebrow">AI SPEECH COACH</div>
+        <div class="ph-title">AI 演讲点评</div>
+        <div class="ph-desc">输入你的演讲内容，AI将从七个维度严格评分并给出改写建议。支持中文、英文、日文。</div>
+      </div>
+      <div class="coach-wrap">
+        <div class="coach-tip"><strong>三种输入方式：</strong>直接打字 · 点击键盘麦克风进行语音输入 · 从语音备忘录复制粘贴。AI将用中文反馈。</div>
+
+        <!-- Topic Generator -->
+        <div class="topic-card">
+          <div class="topic-card-head">
+            <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span class="topic-card-label">随机话题生成器</span>
+          </div>
+          <div class="topic-dirs" id="topicDirs"></div>
+          <div class="topic-gen-row">
+            <button class="btn-gen" id="genBtn" onclick="generateTopic()">
+              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              生成练习话题
+            </button>
+          </div>
+          <div class="topic-result" id="topicResult">
+            <div class="topic-result-lbl">TODAY'S TOPIC</div>
+            <div class="topic-result-text" id="topicTitle"></div>
+            <div class="topic-result-hint" id="topicHint"></div>
+            <button class="btn-use" onclick="useTopic()">用这个话题练习 →</button>
+          </div>
+        </div>
+
+        <!-- Input -->
+        <div class="input-card">
+          <div class="input-card-head"><span class="input-card-label">输入内容</span><span class="char-count" id="charCount">0 字</span></div>
+          <textarea id="speechInput" placeholder="在这里输入你的演讲内容……&#10;&#10;也可以点击键盘上的麦克风🎤按钮进行语音输入。" oninput="onInputChange()"></textarea>
+          <div class="input-actions">
+            <button class="btn-clear" onclick="clearInput()">清空</button>
+            <button class="btn-submit" id="submitBtn" onclick="submitForReview()">
+              <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              获取AI点评
+            </button>
+          </div>
+        </div>
+        <div id="loadingCard" style="display:none"><div class="loading-card"><div class="loading-dots"><span></span><span></span><span></span></div><div class="loading-text">AI正在严格审阅你的内容……</div></div></div>
+        <div id="errorCard" style="display:none" class="error-card"></div>
+        <div id="resultCard" style="display:none" class="result-card">
+          <div class="result-head"><span class="result-head-lbl">AI FEEDBACK</span><span class="result-score-badge" id="scoreDisplay"></span></div>
+          <div class="result-body" id="resultBody"></div>
+          <div class="result-footer"><button class="btn-copy" onclick="copyResult()">复制反馈</button><button class="btn-new" onclick="newInput()">再练一次</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIMENSIONS -->
+    <div class="page" id="page-dimensions">
+      <div class="page-header"><div class="ph-eyebrow">SCIENTIFIC FRAMEWORK</div><div class="ph-title">七大核心维度</div><div class="ph-desc">点击每个维度查看科学依据与训练方法</div></div>
+      <div class="dim-list" id="dimList"></div>
+    </div>
+
+    <!-- PLAN -->
+    <div class="page" id="page-plan">
+      <div class="page-header"><div class="ph-eyebrow">8-WEEK TRAINING PLAN</div><div class="ph-title">八周训练计划</div><div class="ph-desc">每天 20–30 分钟，循序渐进</div></div>
+      <div class="plan-list" id="planList"></div>
+    </div>
+
+    <!-- CHECKLIST -->
+    <div class="page" id="page-checklist">
+      <div class="page-header"><div class="ph-eyebrow">DAILY CHECKLIST</div><div class="ph-title">每日打卡</div><div class="ph-desc">完成今日任务，养成练习习惯</div></div>
+      <div class="cl-body">
+        <div class="prog-card"><div class="prog-top"><div class="prog-title">今日完成度</div><div class="prog-count" id="progCount">0 / 12</div></div><div class="prog-track"><div class="prog-fill" id="progFill"></div></div><div class="prog-sub" id="progSub">完成所有任务以记录今日打卡</div></div>
+        <div id="clContent"></div>
+        <button class="reset-btn" onclick="resetChecklist()">↺ 重置今日清单</button>
+      </div>
+    </div>
+
+    <!-- PRINCIPLES -->
+    <div class="page" id="page-principles">
+      <div class="page-header"><div class="ph-eyebrow">META-PRINCIPLES</div><div class="ph-title">核心原则</div><div class="ph-desc">决定所有维度训练效果的底层逻辑</div></div>
+      <div class="pri-list" id="priList"></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV with Lucide SVG -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="switchPage('home')">
+      <svg class="nav-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <div class="nav-label">首页</div>
+    </div>
+    <div class="nav-item" id="nav-coach" onclick="switchPage('coach')">
+      <svg class="nav-svg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="9.01" y2="10" stroke-width="3"/><line x1="12" y1="10" x2="12.01" y2="10" stroke-width="3"/><line x1="15" y1="10" x2="15.01" y2="10" stroke-width="3"/></svg>
+      <div class="nav-label">AI点评</div>
+    </div>
+    <div class="nav-item" id="nav-dimensions" onclick="switchPage('dimensions')">
+      <svg class="nav-svg" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <div class="nav-label">维度</div>
+    </div>
+    <div class="nav-item" id="nav-checklist" onclick="switchPage('checklist')">
+      <svg class="nav-svg" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <div class="nav-label">打卡</div>
+    </div>
+    <div class="nav-item" id="nav-principles" onclick="switchPage('principles')">
+      <svg class="nav-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="3"/></svg>
+      <div class="nav-label">原则</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DIM_ICONS=[
+  `<svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+  `<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+  `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+  `<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  `<svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6" stroke-width="3"/><line x1="3" y1="12" x2="3.01" y2="12" stroke-width="3"/><line x1="3" y1="18" x2="3.01" y2="18" stroke-width="3"/></svg>`,
+  `<svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`,
+];
+
+const DIMS=[
+  {num:'01',name:'逻辑性',sub:'论点有序，推理严密，结论可溯',badge:'b-l',bl:'LOGIC',sci:'认知负荷理论（Sweller, 1988）表明，听众的工作记忆有限。逻辑清晰的结构可将认知负荷降低40%，信息留存率显著提升。Toulmin论证模型证实，"主张→数据→支撑"三段式是最易被接受的论证结构。',ms:[{b:'PREP框架',t:'：观点→理由→例子→重申，每次发言前默写结构，再大声念出来'},{b:'三行提炼',t:'：找一篇社论，提炼主张、证据和说服力来源，每天一篇'},{b:'连接词层级',t:'：学习并列/递进/转折/因果的不同力度，刻意选用'},{b:'倒推法',t:'：先写结论再补论据，训练结论先行的思维习惯'}]},
+  {num:'02',name:'说服力',sub:'改变他人信念或行动的能力',badge:'b-e',bl:'PERSUASION',sci:'Cialdini的影响力六原则被大量实验证实。元分析研究显示，双面论证（先承认反方观点再反驳）比单面论证说服力高出23%。',ms:[{b:'听众分析',t:'：说话前问"对方最在乎什么"，从对方利益切入'},{b:'双面论证',t:'：先承认对方观点的合理性，再提出有力转折'},{b:'数据+故事',t:'：数据建立可信度，故事触发情感，两者组合效果最强'},{b:'锚定技术',t:'：先提出极端参照点，再提出真实诉求'}]},
+  {num:'03',name:'表达清晰度',sub:'用最少的词传递最准确的意思',badge:'b-l',bl:'CLARITY',sci:'费曼技巧显示，能用简单语言解释复杂概念，是真正理解的标志。语言学研究表明，"模糊限制词"会降低说话者可信度达35%。',ms:[{b:'费曼法则',t:'：用小学生能理解的语言解释任何专业概念'},{b:'录音回听',t:'：标记所有废话词（那个、然后、就是说），刻意减少'},{b:'删词练习',t:'：写作时删去20%的词而不损失意思'},{b:'先停顿后开口',t:'：思考后再说，停顿本身也是力量'}]},
+  {num:'04',name:'情绪调动力',sub:'引发共鸣，激活听众情感',badge:'b-e',bl:'EMOTION',sci:'神经科学研究（Damasio, 1994）证明，情绪是理性决策的必要条件。Paul Ekman的研究显示，具体场景和感官细节能激活镜像神经元，产生真实共情反应。',ms:[{b:'感官化叙述',t:'：加入视觉、听觉、触觉细节，让听众身临其境'},{b:'故事弧线',t:'：困境→转折→洞见，三段结构普遍激发投入感'},{b:'语速与停顿',t:'：情绪高点前刻意放慢，制造张力'},{b:'个人故事库',t:'：记录10个有情感转折的真实经历，随时可调用'}]},
+  {num:'05',name:'倾听与即时回应',sub:'善听者才能善说',badge:'b-s',bl:'DIALOGUE',sci:'社会心理学研究表明，被人"听见"是最强的社会需求之一。主动倾听的回应者被评分为更有能力、更值得信赖的沟通者。',ms:[{b:'复述确认',t:'："你的意思是……，我理解对吗？"——让对方感到被重视'},{b:'"Yes, and"',t:'：接住对方的话再延伸，而非立刻反驳'},{b:'提问替代陈述',t:'：聊天时专注于用好问题替代抢话'},{b:'打断计数',t:'：观察自己打断对方的次数，目标降为零'}]},
+  {num:'06',name:'结构化表达',sub:'让信息有形状，易于接收与记忆',badge:'b-s',bl:'STRUCTURE',sci:'心理学"序列位置效应"表明，听众记住开头和结尾的概率是中间部分的2倍以上。金字塔原理（结论先行→支撑→细节）是最高效的商业沟通结构。',ms:[{b:'金字塔原理',t:'：先说结论，再说原因，最后给细节'},{b:'数字化框架',t:'："有三点"、"第一……第二……"让听众提前建立预期'},{b:'一句话主张',t:'：所有发言前逼迫自己提炼核心主张'},{b:'过渡句',t:'："基于以上……"——防止段落之间的信息断裂'}]},
+  {num:'07',name:'声音与非语言',sub:'55%的印象来自肢体，38%来自声音',badge:'b-e',bl:'DELIVERY',sci:'在情绪传递场景中，声调和肢体语言的权重远超文字本身。Amy Cuddy的研究表明，"权力姿态"能在2分钟内改变激素水平，进而影响表达状态和自信心。',ms:[{b:'朗读训练',t:'：每天5分钟，刻意练习语速变化——重点处慢，过渡处快'},{b:'镜子练习',t:'：对着镜子练习，观察并调整眼神接触与手势协调性'},{b:'视频复盘',t:'：录视频回看，专注于消除无意识小动作'},{b:'腹式呼吸',t:'：声音的底气来自横膈膜而非喉咙'}]},
+];
+
+const PLAN=[
+  {range:'WEEK 1–2',title:'基础建构：逻辑 × 清晰度',focus:'结构先行',days:[{day:'MON/THU',title:'PREP结构练习',desc:'选一个日常话题，按"观点→理由→例子→重申"写出来，再大声朗读。',time:'20min'},{day:'TUE/FRI',title:'费曼法则训练',desc:'选一个熟悉的专业概念，用不超过3句话向非专业人士解释，录音回听。',time:'15min'},{day:'WED',title:'社论分析',desc:'找一篇评论文章，提炼：主张是什么？依据是什么？论证有漏洞吗？',time:'20min'},{day:'周末',title:'即兴2分钟演讲',desc:'随机选一个词，即兴讲2分钟，录视频，不修改地看完整遍。',time:'30min'}]},
+  {range:'WEEK 3–4',title:'情感层：情绪调动 × 声音',focus:'增加温度',days:[{day:'MON/THU',title:'故事库建设',desc:'写下一个有转折点的亲身经历，加入具体感官细节。',time:'25min'},{day:'TUE/FRI',title:'朗读训练',desc:'选一篇有情感的文章，大声朗读，刻意在重点句前停顿1–2秒。',time:'15min'},{day:'WED',title:'镜子练习',desc:'对着镜子讲3分钟任意话题，全程保持眼神焦点、手势自然。',time:'20min'},{day:'周末',title:'TED模仿练习',desc:'选一个喜欢的TED演讲片段（3分钟），先听，再关字幕跟说。',time:'40min'}]},
+  {range:'WEEK 5–6',title:'说服层：论证 × 听众意识',focus:'以对方为中心',days:[{day:'MON/THU',title:'双面论证练习',desc:'选一个你持有立场的话题，先写出反方最强论据，再写出你的反驳。',time:'25min'},{day:'TUE/FRI',title:'听众画像练习',desc:'拿最近一次需要说服某人的场景，重写策略：对方最在乎什么？',time:'20min'},{day:'WED',title:'积极倾听练习',desc:'今天一次重要对话中，不打断，先复述对方意思再表达自己的观点。',time:'全天'},{day:'周末',title:'辩论模拟',desc:'找朋友或用AI对练，各持对立观点辩论5分钟。',time:'45min'}]},
+  {range:'WEEK 7–8',title:'整合应用：真实场景模拟',focus:'实战化',days:[{day:'MON/THU',title:'5分钟完整演讲',desc:'选一个你真正关心的话题，准备并录制5分钟演讲，综合使用所有维度。',time:'30min'},{day:'TUE/FRI',title:'复盘演讲录像',desc:'逐一评分：逻辑清晰？结构有层次？情绪到位？声音有变化？',time:'20min'},{day:'WED',title:'即兴高压练习',desc:'给你一个问题，只有10秒思考时间，立刻给出有结构的2分钟回答。',time:'20min'},{day:'周末',title:'真实场景挑战',desc:'主动创造一次真实表达机会：主导话题、做presentation、或参加辩论。',time:'真实'}]},
+];
+
+const CHECKS=[
+  {group:'晨间准备（5分钟）',items:['今天有重要表达机会吗？提前想好核心主张（一句话）。','做3次腹式深呼吸，让声音状态进入最佳。']},
+  {group:'日间有意识练习',items:['至少一次对话中，完全不打断对方，等对方说完再发言。','至少一次表达时，使用数字化框架（"有两点……"）。','注意今天用了多少次"那个、就是、然后"等填充词。','遇到需要说服他人的情境，先想对方最在乎什么再开口。']},
+  {group:'专项训练（按计划周次）',items:['完成今日计划训练任务（参见训练计划页）。','练习已录音或录视频，文件已保存。']},
+  {group:'晚间复盘（5分钟）',items:['今天哪一次表达是成功的？识别具体做对了什么。','今天哪一次表达不理想？找到一个可改进的具体行为。','回听今日录音，标记一个明天要重点改进的维度。','在笔记本上写下：明天的表达目标是什么（一句话）。']},
+];
+
+const PRINCIPLES=[
+  {num:'01',title:'刻意练习而非重复练习',body:'心理学家 Ericsson 的研究证明，只有"在舒适区边缘、伴随即时反馈"的练习才能形成技能。录音→回听→识别问题→针对性改进，这个循环缺一不可。'},
+  {num:'02',title:'先有思想，再有表达',body:'说话模糊最根本的原因是思想不清晰，而非语言能力不足。每次练习前，强制用一句话写出"我想说的核心是什么"。'},
+  {num:'03',title:'恐惧是可以驯化的',body:'神经科学研究显示，重复暴露（Exposure Therapy）是克服表达恐惧最有效的方法。每次你在轻度紧张状态下成功说话，杏仁核对这一情境的反应就会减弱。'},
+  {num:'04',title:'模仿是内化的捷径',body:'找到3个你欣赏的说话者，分析他们在逻辑、情绪、结构上各自的特点，刻意模仿其一个优点直到内化为止。'},
+  {num:'05',title:'真实性比技巧更有力量',body:'布雷内·布朗（Brené Brown）的脆弱性研究表明，真实坦诚的表达比任何修辞技巧都更能建立连接。技巧是工具，真实是基础。'},
+];
+
+const DIRECTIONS=[{id:'career',label:'职场与职业'},{id:'society',label:'社会与时事'},{id:'tech',label:'科技与未来'},{id:'life',label:'生活与成长'},{id:'culture',label:'文化与艺术'},{id:'random',label:'随机'}];
+let selDir='random', curTopic='';
+
+function renderTopicDirs(){
+  document.getElementById('topicDirs').innerHTML=DIRECTIONS.map(d=>`<button class="dir-btn${d.id===selDir?' sel':''}" onclick="selDirection('${d.id}')">${d.label}</button>`).join('');
+}
+function selDirection(id){selDir=id;renderTopicDirs();}
+
+async function generateTopic(){
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true;
+  btn.innerHTML='<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--bg);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> 生成中…';
+  document.getElementById('topicResult').style.display='none';
+  const dirLabel=DIRECTIONS.find(d=>d.id===selDir)?.label||'随机';
+  const prompt=`你是一位演讲训练教练。请生成一个适合即兴演讲练习的话题。\n方向：${selDir==='random'?'任意方向，随机选择':dirLabel}\n要求：1.话题具体、有争议性或有趣，不能太宽泛 2.适合2–5分钟即兴演讲 3.可以是问题、观点、假设情境或比较题\n请严格按以下JSON格式输出，不要有任何额外文字：\n{"topic":"话题标题（20字以内）","hint":"给演讲者的提示：可以从哪几个角度切入，2–3句话"}`;
+  try{
+    const res=await fetch('/.netlify/functions/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:1.1,maxOutputTokens:256}})});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'API错误');
+    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const parsed=JSON.parse(raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim());
+    curTopic=parsed.topic;
+    document.getElementById('topicTitle').textContent=parsed.topic;
+    document.getElementById('topicHint').textContent=parsed.hint;
+    document.getElementById('topicResult').style.display='block';
+  }catch(err){alert('生成话题失败：'+err.message);}
+  finally{
+    btn.disabled=false;
+    btn.innerHTML='<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--bg);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 生成练习话题';
+  }
+}
+
+function useTopic(){
+  if(!curTopic)return;
+  const ta=document.getElementById('speechInput');
+  ta.value='【话题】'+curTopic+'\n\n';
+  ta.focus();onInputChange();
+  setTimeout(()=>ta.scrollIntoView({behavior:'smooth',block:'center'}),100);
+}
+
+function renderDimensions(){
+  document.getElementById('dimList').innerHTML=DIMS.map((d,i)=>`
+    <div class="dim-card" id="dim${i}" onclick="toggleDim(${i})">
+      <div class="dim-card-head">
+        <span class="dim-num">${d.num}</span>
+        <div class="dim-icon">${DIM_ICONS[i]}</div>
+        <div class="dim-info"><div class="dim-name">${d.name}</div><div class="dim-sub">${d.sub}</div></div>
+        <span class="dim-badge ${d.badge}">${d.bl}</span>
+        <div class="dim-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+      <div class="dim-body">
+        <div class="dim-sec"><div class="dim-sec-lbl">科学依据</div><div class="sci-box">${d.sci}</div></div>
+        <div class="dim-sec"><div class="dim-sec-lbl">提升方法</div>${d.ms.map(m=>`<div class="meth-row"><div class="meth-dot"></div><div class="meth-txt"><strong>${m.b}</strong>${m.t}</div></div>`).join('')}</div>
+      </div>
+    </div>`).join('');
+}
+function toggleDim(i){const c=document.getElementById('dim'+i),was=c.classList.contains('open');document.querySelectorAll('.dim-card.open').forEach(x=>x.classList.remove('open'));if(!was)c.classList.add('open');}
+
+function renderPlan(){document.getElementById('planList').innerHTML=PLAN.map(w=>`<div class="week-card"><div class="week-head"><span class="week-pill">${w.range}</span><span class="week-title">${w.title}</span><span class="week-focus">${w.focus}</span></div>${w.days.map(d=>`<div class="day-row"><div class="day-tag">${d.day}</div><div class="day-content"><div class="day-title">${d.title}</div><div class="day-desc">${d.desc}</div></div><div class="day-time">${d.time}</div></div>`).join('')}</div>`).join('');}
+
+function renderPrinciples(){document.getElementById('priList').innerHTML=PRINCIPLES.map(p=>`<div class="pri-card"><div class="pri-num">${p.num}</div><div><div class="pri-title">${p.title}</div><div class="pri-body">${p.body}</div></div></div>`).join('');}
+
+const todayKey=()=>'ck_'+new Date().toISOString().slice(0,10);
+const loadSt=()=>{try{return JSON.parse(localStorage.getItem(todayKey())||'{}')}catch{return{}}};
+const saveSt=s=>localStorage.setItem(todayKey(),JSON.stringify(s));
+
+function renderChecklist(){
+  const st=loadSt();
+  document.getElementById('clContent').innerHTML=CHECKS.map((g,gi)=>`<div class="ck-group"><div class="ck-group-lbl">${g.group}</div>${g.items.map((item,ii)=>{const key=gi+'-'+ii,done=st[key]?'done':'';return`<div class="ck-item ${done}" onclick="toggleCheck('${key}')" id="ci-${key}"><div class="ck-box"><span class="ck-mark">✓</span></div><div class="ck-text">${item}</div></div>`;}).join('')}</div>`).join('');
+  updateProgress();
+}
+function toggleCheck(key){const s=loadSt();s[key]=!s[key];saveSt(s);document.getElementById('ci-'+key).classList.toggle('done',!!s[key]);updateProgress();}
+function updateProgress(){
+  const s=loadSt(),total=CHECKS.reduce((a,g)=>a+g.items.length,0),done=Object.values(s).filter(Boolean).length;
+  document.getElementById('progFill').style.width=(done/total*100)+'%';
+  document.getElementById('progCount').textContent=done+' / '+total;
+  document.getElementById('todayDone').textContent=done;
+  let sub=done===0?'完成所有任务以记录今日打卡':done===total?'今日全部完成！已记录打卡 🔥':'还剩'+(total-done)+'项，继续加油！';
+  if(done===total)updateStreak(true);
+  document.getElementById('progSub').textContent=sub;
+}
+function resetChecklist(){localStorage.removeItem(todayKey());renderChecklist();}
+
+function updateStreak(completed){
+  const today=new Date().toISOString().slice(0,10);
+  let d={};try{d=JSON.parse(localStorage.getItem('streak_v2')||'{}')}catch{}
+  if(completed&&d.last!==today){const yest=new Date(Date.now()-86400000).toISOString().slice(0,10);d.count=(d.last===yest?(d.count||0):0)+1;d.last=today;localStorage.setItem('streak_v2',JSON.stringify(d));}
+  const n=d.count||0;
+  document.getElementById('streakNum').textContent=n;
+  document.getElementById('streakSub').textContent=n>0?'上次打卡 '+d.last:'完成清单开始记录';
+}
+
+function onInputChange(){document.getElementById('charCount').textContent=document.getElementById('speechInput').value.length+' 字';}
+function clearInput(){document.getElementById('speechInput').value='';document.getElementById('charCount').textContent='0 字';document.getElementById('resultCard').style.display='none';document.getElementById('errorCard').style.display='none';}
+function newInput(){clearInput();document.getElementById('speechInput').focus();}
+
+async function submitForReview(){
+  const text=document.getElementById('speechInput').value.trim();
+  if(!text){alert('请先输入内容');return;}
+  if(text.length<10){alert('内容太短，请输入至少10个字');return;}
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.innerHTML='<span>分析中…</span>';
+  document.getElementById('loadingCard').style.display='block';
+  document.getElementById('resultCard').style.display='none';
+  document.getElementById('errorCard').style.display='none';
+  const prompt='你是一位顶级演讲教练，请对以下内容进行严格、专业的评价。\n\n【输入内容】\n'+text+'\n\n【评价要求】\n1. 原文可能是中文、英文或日文，但所有反馈必须用中文输出。\n2. 从以下七个维度逐一评价，每个维度给出0-10分并说明理由：逻辑性、说服力、表达清晰度、情绪调动力、结构化、简洁性、声音节奏感\n3. 给出综合评分（0-100）。\n4. 列出3个最需要改进的具体问题，每个给出具体改进建议。\n5. 提供改写后的版本（保留原意，显著提升表达，改写语言与原文语言一致）。\n\n请严格按以下JSON格式输出，不要有任何额外文字：\n{"score":数字,"dimensions":[{"name":"逻辑性","score":数字,"comment":"评语"},{"name":"说服力","score":数字,"comment":"评语"},{"name":"表达清晰度","score":数字,"comment":"评语"},{"name":"情绪调动力","score":数字,"comment":"评语"},{"name":"结构化","score":数字,"comment":"评语"},{"name":"简洁性","score":数字,"comment":"评语"},{"name":"声音节奏感","score":数字,"comment":"评语"}],"issues":[{"problem":"问题描述","suggestion":"改进建议"},{"problem":"问题描述","suggestion":"改进建议"},{"problem":"问题描述","suggestion":"改进建议"}],"revised":"改写后的版本"}';
+  try{
+    const res=await fetch('/.netlify/functions/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.7,maxOutputTokens:2048}})});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'API错误');
+    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    let parsed;try{parsed=JSON.parse(raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim())}catch{throw new Error('AI返回格式异常，请重试');}
+    renderResult(parsed);
+  }catch(err){document.getElementById('errorCard').style.display='block';document.getElementById('errorCard').textContent='出错了：'+err.message;}
+  finally{btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 获取AI点评';document.getElementById('loadingCard').style.display='none';}
+}
+
+function scoreColor(s){return s>=8?'#4a8c5c':s>=6?'#c49a50':'#c4684a';}
+
+function renderResult(data){
+  const score=data.score||0,scoreEl=document.getElementById('scoreDisplay');
+  scoreEl.textContent=score+' / 100';
+  const c=score>=70?'#4a8c5c':score>=50?'#c49a50':'#c4684a',bg=score>=70?'rgba(74,140,92,.12)':score>=50?'rgba(196,154,80,.12)':'rgba(196,104,74,.12)';
+  scoreEl.style.color=c;scoreEl.style.background=bg;
+  let html='';
+  if(data.dimensions?.length){
+    html+='<div class="res-section"><div class="res-sec-title"><div class="res-dot dot-blue"></div>七维度评分</div>';
+    data.dimensions.forEach(d=>{const col=scoreColor(d.score);html+=`<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:14px;font-weight:700;color:var(--ink)">${d.name}</span><span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${col}">${d.score}/10</span></div><div style="height:5px;background:var(--card2);border-radius:4px;margin-bottom:7px;overflow:hidden;border:1px solid var(--border)"><div style="height:100%;width:${d.score*10}%;background:${col};border-radius:4px;transition:width .6s ease"></div></div><div style="font-size:13px;color:var(--muted);line-height:1.7">${d.comment}</div></div>`;});
+    html+='</div>';
+  }
+  if(data.issues?.length){
+    html+='<div class="res-section"><div class="res-sec-title"><div class="res-dot dot-orange"></div>核心改进点</div><ul class="res-list">';
+    data.issues.forEach(iss=>{html+=`<li><div><div style="font-weight:700;color:var(--ink);margin-bottom:3px">${iss.problem}</div><div style="color:var(--muted)">${iss.suggestion}</div></div></li>`;});
+    html+='</ul></div>';
+  }
+  if(data.revised){html+=`<div class="res-section"><div class="res-sec-title"><div class="res-dot dot-green"></div>改写版本</div><div class="revised-box"><p>${data.revised}</p></div></div>`;}
+  document.getElementById('resultBody').innerHTML=html;
+  document.getElementById('resultCard').style.display='block';
+  setTimeout(()=>document.getElementById('resultCard').scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+function copyResult(){
+  navigator.clipboard.writeText('综合评分：'+document.getElementById('scoreDisplay').textContent+'\n\n'+document.getElementById('resultBody').innerText).then(()=>alert('已复制到剪贴板')).catch(()=>alert('复制失败，请手动长按选择'));
+}
+
+function switchPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  document.getElementById('scrollArea').scrollTop=0;
+}
+
+renderDimensions();renderPlan();renderPrinciples();renderChecklist();renderTopicDirs();updateStreak(false);
+const _d=new Date(),_days=['日','一','二','三','四','五','六'];
+document.getElementById('todayDate').textContent=(_d.getMonth()+1)+'/'+_d.getDate()+' 周'+_days[_d.getDay()];
+</script>
+</body>
+</html>
