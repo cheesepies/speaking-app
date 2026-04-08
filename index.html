@@ -416,36 +416,48 @@ function renderTopicDirs(){
 }
 function selDirection(id){selDir=id;renderTopicDirs();}
 
-async function generateTopic(){
-  const btn=document.getElementById('genBtn');
-  btn.disabled=true;
-  btn.innerHTML='<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--bg);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> 生成中…';
-  document.getElementById('topicResult').style.display='none';
-  const dirLabel=DIRECTIONS.find(d=>d.id===selDir)?.label||'随机';
-  const prompt=`你是一位演讲训练教练。请生成一个适合即兴演讲练习的话题。\n方向：${selDir==='random'?'任意方向，随机选择':dirLabel}\n要求：1.话题具体、有争议性或有趣，不能太宽泛 2.适合2–5分钟即兴演讲 3.可以是问题、观点、假设情境或比较题\n请严格按以下JSON格式输出，不要有任何额外文字：\n{"topic":"话题标题（20字以内）","hint":"给演讲者的提示：可以从哪几个角度切入，2–3句话"}`;
-  try{
-    const res=await fetch('/.netlify/functions/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:1.1,maxOutputTokens:256}})});
-    const data=await res.json();
-    if(!res.ok)throw new Error(data.error||'API错误');
-    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    const parsed=JSON.parse(raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim());
-    curTopic=parsed.topic;
-    document.getElementById('topicTitle').textContent=parsed.topic;
-    document.getElementById('topicHint').textContent=parsed.hint;
-    document.getElementById('topicResult').style.display='block';
-  }catch(err){alert('生成话题失败：'+err.message);}
-  finally{
-    btn.disabled=false;
-    btn.innerHTML='<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--bg);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 生成练习话题';
+async function generateTopic() {
+  const genBtn = document.getElementById('genBtn');
+  genBtn.disabled = true;
+  genBtn.textContent = "正在构思...";
+
+  const prompt = "请为我生成一个有趣的演讲练习话题。要求：返回格式必须是 JSON，结构为：{\"title\": \"话题标题\", \"hint\": \"启发性的一句话提示\"}。不要有任何其他文字。";
+
+  try {
+    const response = await fetch('/.netlify/functions/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    const data = await response.json();
+    let aiText = data.candidates[0].content.parts[0].text;
+    
+    // 同样的防弹处理：去除 Markdown 标签
+    aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    const topic = JSON.parse(aiText);
+
+    document.getElementById('topicTitle').textContent = topic.title;
+    document.getElementById('topicHint').textContent = topic.hint;
+    document.getElementById('topicResult').style.display = 'block';
+  } catch (err) {
+    console.error(err);
+    alert("生成话题失败，请稍后再试");
+  } finally {
+    genBtn.disabled = false;
+    genBtn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 生成练习话题`;
   }
 }
 
-function useTopic(){
-  if(!curTopic)return;
-  const ta=document.getElementById('speechInput');
-  ta.value='【话题】'+curTopic+'\n\n';
-  ta.focus();onInputChange();
-  setTimeout(()=>ta.scrollIntoView({behavior:'smooth',block:'center'}),100);
+function useTopic() {
+  const title = document.getElementById('topicTitle').textContent;
+  document.getElementById('speechInput').value = `话题：${title}\n\n我的练习：`;
+  onInputChange();
+  // 滚动到输入框
+  document.getElementById('speechInput').scrollIntoView({ behavior: 'smooth' });
 }
 
 function renderDimensions(){
@@ -504,25 +516,55 @@ function onInputChange(){document.getElementById('charCount').textContent=docume
 function clearInput(){document.getElementById('speechInput').value='';document.getElementById('charCount').textContent='0 字';document.getElementById('resultCard').style.display='none';document.getElementById('errorCard').style.display='none';}
 function newInput(){clearInput();document.getElementById('speechInput').focus();}
 
-async function submitForReview(){
-  const text=document.getElementById('speechInput').value.trim();
-  if(!text){alert('请先输入内容');return;}
-  if(text.length<10){alert('内容太短，请输入至少10个字');return;}
-  const btn=document.getElementById('submitBtn');
-  btn.disabled=true;btn.innerHTML='<span>分析中…</span>';
-  document.getElementById('loadingCard').style.display='block';
-  document.getElementById('resultCard').style.display='none';
-  document.getElementById('errorCard').style.display='none';
-  const prompt='你是一位顶级演讲教练，请对以下内容进行严格、专业的评价。\n\n【输入内容】\n'+text+'\n\n【评价要求】\n1. 原文可能是中文、英文或日文，但所有反馈必须用中文输出。\n2. 从以下七个维度逐一评价，每个维度给出0-10分并说明理由：逻辑性、说服力、表达清晰度、情绪调动力、结构化、简洁性、声音节奏感\n3. 给出综合评分（0-100）。\n4. 列出3个最需要改进的具体问题，每个给出具体改进建议。\n5. 提供改写后的版本（保留原意，显著提升表达，改写语言与原文语言一致）。\n\n请严格按以下JSON格式输出，不要有任何额外文字：\n{"score":数字,"dimensions":[{"name":"逻辑性","score":数字,"comment":"评语"},{"name":"说服力","score":数字,"comment":"评语"},{"name":"表达清晰度","score":数字,"comment":"评语"},{"name":"情绪调动力","score":数字,"comment":"评语"},{"name":"结构化","score":数字,"comment":"评语"},{"name":"简洁性","score":数字,"comment":"评语"},{"name":"声音节奏感","score":数字,"comment":"评语"}],"issues":[{"problem":"问题描述","suggestion":"改进建议"},{"problem":"问题描述","suggestion":"改进建议"},{"problem":"问题描述","suggestion":"改进建议"}],"revised":"改写后的版本"}';
-  try{
-    const res=await fetch('/.netlify/functions/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.7,maxOutputTokens:2048}})});
-    const data=await res.json();
-    if(!res.ok)throw new Error(data.error||'API错误');
-    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    let parsed;try{parsed=JSON.parse(raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim())}catch{throw new Error('AI返回格式异常，请重试');}
-    renderResult(parsed);
-  }catch(err){document.getElementById('errorCard').style.display='block';document.getElementById('errorCard').textContent='出错了：'+err.message;}
-  finally{btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 获取AI点评';document.getElementById('loadingCard').style.display='none';}
+async function submitForReview() {
+  const input = document.getElementById('speechInput').value.trim();
+  if (!input) return alert("请输入内容");
+
+  // UI 状态切换
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('loadingCard').style.display = 'block';
+  document.getElementById('resultCard').style.display = 'none';
+  document.getElementById('errorCard').style.display = 'none';
+
+  // 构造严格的 Prompt
+  const prompt = `你是一个极度严厉且专业的演讲教练。请审阅以下内容，并严格按照 JSON 格式返回。
+  JSON 结构必须包含：
+  {
+    "score": 数字(0-100),
+    "dimensions": [{"name": "逻辑性", "val": 0-100}, {"name": "说服力", "val": 0-100}, {"name": "清晰度", "val": 0-100}, {"name": "情绪力", "val": 0-100}, {"name": "互动性", "val": 0-100}, {"name": "节奏感", "val": 0-100}, {"name": "语调", "val": 0-100}],
+    "issues": [{"problem": "问题描述", "suggestion": "改进建议"}],
+    "revised": "你改写后的版本"
+  }
+  
+  内容如下：${input}`;
+
+  try {
+    const response = await fetch('/.netlify/functions/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // 核心修复：使用 JSON.stringify 确保格式永远正确
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    const data = await response.json();
+    
+    // 核心修复：处理 AI 可能返回的 Markdown 标签
+    let aiText = data.candidates[0].content.parts[0].text;
+    // 去掉可能存在的 ```json 和 ``` 标记
+    aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    const result = JSON.parse(aiText);
+    showResult(result);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('errorCard').textContent = "AI 思考过度或格式异常，请重试一次";
+    document.getElementById('errorCard').style.display = 'block';
+  } finally {
+    document.getElementById('loadingCard').style.display = 'none';
+    document.getElementById('submitBtn').disabled = false;
+  }
 }
 
 function scoreColor(s){return s>=8?'#4a8c5c':s>=6?'#c49a50':'#c4684a';}
